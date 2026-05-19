@@ -6,8 +6,7 @@ import numpy as np
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="DS Music Matcher", page_icon="🎵")
 
-# --- DATASET (Simulando 15 canciones con características DS) ---
-# Valence: 0.0 (triste) a 1.0 (feliz) | Energy: 0.0 (calma) a 1.0 (entrenar)
+# --- DATASET (Simulando 10 canciones con características DS) ---
 data = {
     'cancion': ['Happy', 'Sad but True', 'Eye of the Tiger', 'Lofi Beats', 'Blinding Lights', 
                 'Heavy Metal', 'Chill Jazz', 'Techno Gym', 'Classical Rain', 'Reggaeton Flow'],
@@ -24,7 +23,7 @@ st.info("Ciencia de Datos: Basado en Similitud de Coseno")
 
 with st.sidebar:
     st.header("Tus Datos de Entrada")
-    nombre = st.text_input("¿Cómo te llamas?")
+    nombre = st.text_input("¿Cómo te llamas?", "Usuario")
     mood = st.slider("Tu Ánimo (0=Triste, 1=Feliz)", 0.0, 1.0, 0.5)
     actividad = st.slider("Tu Energía (0=Dormir, 1=Gym)", 0.0, 1.0, 0.5)
 
@@ -37,7 +36,6 @@ if st.button("¡Recomiéndame algo!"):
     song_vectors = df[['valence', 'energy']].values
     
     # 3. Calcular Similitud de Coseno
-    # Esto mide el ángulo entre el usuario y las canciones en un plano 2D
     similitudes = cosine_similarity(user_vector, song_vectors)[0]
     
     # 4. Encontrar la mejor
@@ -49,9 +47,29 @@ if st.button("¡Recomiéndame algo!"):
     st.metric(label="Match Algorítmico", value=f"{score}%")
     st.markdown(f"🎵 **Canción:** {recomendacion['cancion']}  \n👤 **Artista:** {recomendacion['artista']}")
     
-    # --- GRÁFICO EXPLICATIVO ---
+    # --- GRÁFICO EXPLICATIVO MODIFICADO ---
     st.write("---")
     st.subheader("Explicación de Ciencia de Datos")
-    st.write("Mira dónde estás tú (punto rojo) vs las canciones en el espacio vectorial:")
-    st.scatter_chart(df, x="valence", y="energy", color="#94a3b8")
-    st.write(f"Tu posición: Valence={mood}, Energy={actividad}")
+    st.write("Mira dónde estás tú vs las canciones en el espacio vectorial:")
+    
+    # PASO A: Creamos una copia de las canciones y añadimos la etiqueta 'Tipo'
+    df_grafico = df.copy()
+    df_grafico['Tipo'] = 'Canciones'
+    
+    # PASO B: Creamos un DataFrame de una sola fila para la posición del usuario
+    usuario_df = pd.DataFrame({
+        'cancion': ['Tú'],
+        'artista': [nombre],
+        'valence': [mood],
+        'energy': [actividad],
+        'Tipo': ['Tu Posición']  # Etiqueta diferente para forzar otro color
+    })
+    
+    # PASO C: Concatenamos ambos DataFrames
+    df_final = pd.concat([df_grafico, usuario_df], ignore_index=True)
+    
+    # PASO D: Graficamos asignando el parámetro color a la columna 'Tipo'
+    # Streamlit usará la paleta de colores de su tema (usualmente un color contrastante para ti)
+    st.scatter_chart(df_final, x="valence", y="energy", color="Tipo")
+    
+    st.write(f"Tu posición actual: Valence={mood}, Energy={actividad}")
