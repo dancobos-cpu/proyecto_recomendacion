@@ -2,74 +2,200 @@ import streamlit as st
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import os
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_title="DS Music Matcher", page_icon="🎵")
+st.set_page_config(page_title="DS Music Matcher ULTRA", page_icon="🚀", layout="wide")
 
-# --- DATASET (Simulando 10 canciones con características DS) ---
+# --- DATASET GIGANTE (80 Canciones con Características DS y Géneros) ---
 data = {
-    'cancion': ['Happy', 'Sad but True', 'Eye of the Tiger', 'Lofi Beats', 'Blinding Lights', 
-                'Heavy Metal', 'Chill Jazz', 'Techno Gym', 'Classical Rain', 'Reggaeton Flow'],
-    'artista': ['Pharrell', 'Metallica', 'Survivor', 'Lofi Girl', 'The Weeknd', 
-                'Slayer', 'Miles Davis', 'DJ Mix', 'Chopin', 'Bad Bunny'],
-    'valence': [0.95, 0.10, 0.60, 0.45, 0.85, 0.05, 0.50, 0.70, 0.20, 0.90],
-    'energy': [0.80, 0.75, 0.95, 0.15, 0.90, 0.98, 0.25, 0.96, 0.10, 0.85],
+    'cancion': [
+        # 1-10
+        'Happy', 'Sad but True', 'Eye of the Tiger', 'Lofi Beats', 'Blinding Lights', 
+        'Heavy Metal', 'Chill Jazz', 'Techno Gym', 'Classical Rain', 'Reggaeton Flow',
+        # 11-20
+        'Pedro Navaja', 'La Rebelión', 'Bad Romance', 'As It Was', 'Resonance',
+        'Nightcall', 'Lose Yourself', 'SICKO MODE', 'Do I Wanna Know?', 'Creep',
+        # 21-30
+        'Dynamite', 'Master of Puppets', 'Chop Suey!', 'Clair de Lune', 'Symphony No. 5',
+        'Take Five', 'Blue in Green', 'Three Little Birds', 'Coffee', 'Wake Me Up',
+        # 31-40
+        'Scary Monsters', 'Bichota', 'Bohemian Rhapsody', 'Stayin Alive', 'Get Lucky',
+        'Danza Kuduro', 'La Camisa Negra', 'Bailando', 'Suavemente', 'El Niágara en Bicicleta',
+        # 41-50
+        'Flowers', 'Bad Guy', 'Stay', 'Umbrella', 'Starboy',
+        'In the End', 'Seven Nation Army', 'Sweet Child O\' Mine', 'Viva La Vida', 'Mr. Brightside',
+        # 51-60
+        'Basket Case', 'The Trooper', 'Psychosocial', 'Killing In The Name', 'God\'s Plan',
+        'HUMBLE.', 'Gangsta\'s Paradise', 'Titanium', 'Animals', 'One More Time',
+        # 61-70
+        'Feeling Good', 'What a Wonderful World', 'Come Fly With Me', 'So What', 'Gymnopédie No. 1',
+        'Time', 'The Imperial March', 'Is This Love', 'Riptide', 'Stressed Out',
+        # 71-80
+        'Gasolina', 'Propuesta Indecente', 'Obsesión', 'La Bilirrubina', 'Take Me Home, Country Roads',
+        'Hotel California', 'Smells Like Teen Spirit', 'Wonderwall', 'Another One Bites the Dust', 'Wake Me Up When September Ends'
+    ],
+    'artista': [
+        # 1-10
+        'Pharrell', 'Metallica', 'Survivor', 'Lofi Girl', 'The Weeknd', 
+        'Slayer', 'Miles Davis', 'DJ Mix', 'Chopin', 'Bad Bunny',
+        # 11-20
+        'Willie Colón', 'Joe Arroyo', 'Lady Gaga', 'Harry Styles', 'HOME',
+        'Kavinsky', 'Eminem', 'Travis Scott', 'Arctic Monkeys', 'Radiohead',
+        # 21-30
+        'BTS', 'Metallica', 'System of a Down', 'Debussy', 'Beethoven',
+        'Dave Brubeck', 'Miles Davis', 'Bob Marley', 'beabadoobee', 'Avicii',
+        # 31-40
+        'Skrillex', 'Karol G', 'Queen', 'Bee Gees', 'Daft Punk',
+        'Don Omar', 'Juanes', 'Enrique Iglesias', 'Elvis Crespo', 'Juan Luis Guerra',
+        # 41-50
+        'Miley Cyrus', 'Billie Eilish', 'The Kid LAROI', 'Rihanna', 'The Weeknd',
+        'Linkin Park', 'The White Stripes', 'Guns N\' Roses', 'Coldplay', 'The Killers',
+        # 51-60
+        'Green Day', 'Iron Maiden', 'Slipknot', 'Rage Against the Machine', 'Drake',
+        'Kendrick Lamar', 'Coolio', 'David Guetta', 'Martin Garrix', 'Daft Punk',
+        # 61-70
+        'Nina Simone', 'Louis Armstrong', 'Frank Sinatra', 'Miles Davis', 'Erik Satie',
+        'Hans Zimmer', 'John Williams', 'Bob Marley', 'Vance Joy', 'Twenty One Pilots',
+        # 71-80
+        'Daddy Yankee', 'Romeo Santos', 'Aventura', 'Juan Luis Guerra', 'John Denver',
+        'Eagles', 'Nirvana', 'Oasis', 'Queen', 'Green Day'
+    ],
+    'genero': [
+        # 1-10
+        'Pop', 'Metal', 'Rock', 'Lofi', 'Synthpop', 
+        'Metal', 'Jazz', 'Techno', 'Clásica', 'Reggaeton',
+        # 11-20
+        'Salsa', 'Salsa', 'Pop', 'Pop', 'Synthwave',
+        'Synthwave', 'Hip-Hop', 'Hip-Hop', 'Indie', 'Alternative',
+        # 21-30
+        'K-Pop', 'Metal', 'Metal', 'Clásica', 'Clásica',
+        'Jazz', 'Jazz', 'Reggae', 'Lofi', 'EDM',
+        # 31-40
+        'EDM', 'Reggaeton', 'Rock', 'Disco', 'Funk',
+        'Urbano Latino', 'Pop Latino', 'Pop Latino', 'Merengue', 'Bachata/Merengue',
+        # 41-50
+        'Pop', 'Pop/Alt', 'Pop', 'Pop/R&B', 'R&B/Synth',
+        'Nu Metal', 'Rock Alt', 'Hard Rock', 'Pop/Rock', 'Indie Rock',
+        # 51-60
+        'Punk Rock', 'Heavy Metal', 'Nu Metal', 'Rap Metal', 'Hip-Hop',
+        'Hip-Hop', 'Hip-Hop', 'EDM', 'EDM', 'Electronic',
+        # 61-70
+        'Jazz/Blues', 'Jazz Tradicional', 'Jazz/Vocal', 'Jazz', 'Clásica',
+        'Soundtrack', 'Soundtrack', 'Reggae', 'Indie Pop', 'Alternative',
+        # 71-80
+        'Reggaeton Old School', 'Bachata', 'Bachata', 'Merengue', 'Country',
+        'Classic Rock', 'Grunge', 'Britpop', 'Funk/Rock', 'Alternative Rock'
+    ],
+    'valence': [
+        # 1-10
+        0.95, 0.10, 0.60, 0.45, 0.85, 0.05, 0.50, 0.70, 0.20, 0.90,
+        # 11-20
+        0.70, 0.80, 0.65, 0.75, 0.60, 0.35, 0.25, 0.45, 0.40, 0.10,
+        # 21-30
+        0.90, 0.15, 0.28, 0.35, 0.30, 0.65, 0.15, 0.92, 0.50, 0.75,
+        # 31-40
+        0.30, 0.85, 0.65, 0.90, 0.80, 0.93, 0.72, 0.88, 0.95, 0.82,
+        # 41-50
+        0.68, 0.23, 0.70, 0.60, 0.55, 0.21, 0.32, 0.74, 0.56, 0.43,
+        # 51-60
+        0.82, 0.35, 0.12, 0.45, 0.50, 0.42, 0.51, 0.45, 0.38, 0.86,
+        # 61-70
+        0.54, 0.88, 0.68, 0.25, 0.20, 0.08, 0.15, 0.82, 0.78, 0.40,
+        # 71-80
+        0.84, 0.65, 0.58, 0.89, 0.79, 0.41, 0.31, 0.45, 0.76, 0.48
+    ],
+    'energy': [
+        # 1-10
+        0.80, 0.75, 0.95, 0.15, 0.90, 0.98, 0.25, 0.96, 0.10, 0.85,
+        # 11-20
+        0.75, 0.88, 0.88, 0.73, 0.40, 0.55, 0.90, 0.85, 0.65, 0.35,
+        # 21-30
+        0.85, 0.96, 0.93, 0.05, 0.82, 0.45, 0.10, 0.45, 0.20, 0.90,
+        # 31-40
+        0.95, 0.80, 0.70, 0.75, 0.80, 0.92, 0.78, 0.83, 0.91, 0.76,
+        # 41-50
+        0.58, 0.42, 0.78, 0.75, 0.70, 0.89, 0.85, 0.87, 0.45, 0.81,
+        # 51-60
+        0.91, 0.94, 0.97, 0.95, 0.55, 0.78, 0.68, 0.80, 0.93, 0.78,
+        # 61-70
+        0.48, 0.20, 0.35, 0.30, 0.02, 0.40, 0.80, 0.52, 0.62, 0.66,
+        # 71-80
+        0.94, 0.52, 0.48, 0.82, 0.42, 0.50, 0.88, 0.38, 0.72, 0.68
+    ],
 }
+
 df = pd.DataFrame(data)
 
 # --- INTERFAZ ---
-st.title("🎧 Recomendador en Vivo")
-st.info("Ciencia de Datos: Basado en Similitud de Coseno")
+st.title("🎧 Recomendador en Vivo (Versión ULTRA)")
+st.info(f"Modelo Espacial de Datos cargado exitosamente con **{len(df)} canciones** distribuidas vectorialmente.")
 
-with st.sidebar:
+# Diseño de columnas amplias
+col1, col2 = st.columns([1, 2])
+
+with col1:
     st.header("Tus Datos de Entrada")
-    nombre = st.text_input("¿Cómo te llamas?", "Usuario")
-    mood = st.slider("Tu Ánimo (0=Triste, 1=Feliz)", 0.0, 1.0, 0.5)
-    actividad = st.slider("Tu Energía (0=Dormir, 1=Gym)", 0.0, 1.0, 0.5)
+    nombre = st.text_input("¿Cómo te llamas?", "Melómano")
+    mood = st.slider("Tu Ánimo (0=Triste/Melancólico, 1=Feliz/Festivo)", 0.0, 1.0, 0.5)
+    actividad = st.slider("Tu Energía (0=Relajado/Dormir, 1=Intenso/Gym)", 0.0, 1.0, 0.5)
+    
+    ejecutar = st.button("🚀 ¡Ejecutar Similitud de Coseno!")
 
-# --- LÓGICA DE RECOMENDACIÓN ---
-if st.button("¡Recomiéndame algo!"):
-    # 1. Crear el vector del usuario
-    user_vector = np.array([[mood, actividad]])
-    
-    # 2. Obtener los vectores de las canciones
-    song_vectors = df[['valence', 'energy']].values
-    
-    # 3. Calcular Similitud de Coseno
-    similitudes = cosine_similarity(user_vector, song_vectors)[0]
-    
-    # 4. Encontrar la mejor
-    indice_top = similitudes.argmax()
-    recomendacion = df.iloc[indice_top]
-    score = round(similitudes[indice_top] * 100, 2)
+with col2:
+    if ejecutar:
+        # 1. Crear vector de usuario
+        user_vector = np.array([[mood, actividad]])
+        
+        # 2. Obtener vectores de canciones
+        song_vectors = df[['valence', 'energy']].values
+        
+        # 3. Calcular Cosenos
+        similitudes = cosine_similarity(user_vector, song_vectors)[0]
+        
+        # 4. Extraer el top match
+        indice_top = similitudes.argmax()
+        recomendacion = df.iloc[indice_top]
+        score = round(similitudes[indice_top] * 100, 2)
 
-    st.success(f"### ¡{nombre}, escucha esto!")
-    st.metric(label="Match Algorítmico", value=f"{score}%")
-    st.markdown(f"🎵 **Canción:** {recomendacion['cancion']}  \n👤 **Artista:** {recomendacion['artista']}")
-    
-    # --- GRÁFICO EXPLICATIVO MODIFICADO ---
-    st.write("---")
-    st.subheader("Explicación de Ciencia de Datos")
-    st.write("Mira dónde estás tú vs las canciones en el espacio vectorial:")
-    
-    # PASO A: Creamos una copia de las canciones y añadimos la etiqueta 'Tipo'
-    df_grafico = df.copy()
-    df_grafico['Tipo'] = 'Canciones'
-    
-    # PASO B: Creamos un DataFrame de una sola fila para la posición del usuario
-    usuario_df = pd.DataFrame({
-        'cancion': ['Tú'],
-        'artista': [nombre],
-        'valence': [mood],
-        'energy': [actividad],
-        'Tipo': ['Tu Posición']  # Etiqueta diferente para forzar otro color
-    })
-    
-    # PASO C: Concatenamos ambos DataFrames
-    df_final = pd.concat([df_grafico, usuario_df], ignore_index=True)
-    
-    # PASO D: Graficamos asignando el parámetro color a la columna 'Tipo'
-    # Streamlit usará la paleta de colores de su tema (usualmente un color contrastante para ti)
-    st.scatter_chart(df_final, x="valence", y="energy", color="Tipo")
-    
-    st.write(f"Tu posición actual: Valence={mood}, Energy={actividad}")
+        # Despliegue de Resultados
+        st.success(f"### ¡{nombre}, el algoritmo ha seleccionado tu pista!")
+        
+        metric_col1, metric_col2 = st.columns(2)
+        with metric_col1:
+            st.metric(label="Precisión del Ángulo Vectorial", value=f"{score}%")
+        with metric_col2:
+            st.markdown(f"🎵 **Canción:** {recomendacion['cancion']} \n\n👤 **Artista:** {recomendacion['artista']} \n\n🏷️ **Género:** {recomendacion['genero']}")
+        
+        # --- HISTORIAL LOCAL EN CSV ---
+        nueva_interaccion = {
+            "Nombre": nombre, "Mood_Usuario": mood, "Energia_Usuario": actividad,
+            "Cancion_Recomendada": recomendacion['cancion'], "Artista_Recomendado": recomendacion['artista'],
+            "Genero": recomendacion['genero'], "Match_Porcentaje": score
+        }
+        df_registro = pd.DataFrame([nueva_interaccion])
+        archivo_csv = 'historial_usuarios.csv'
+        if not os.path.isfile(archivo_csv):
+            df_registro.to_csv(archivo_csv, index=False)
+        else:
+            df_registro.to_csv(archivo_csv, mode='a', header=False, index=False)
+
+        # --- GRÁFICO DE ALTA DENSIDAD ---
+        st.write("---")
+        st.subheader("📍 Mapa de Distribución Vectorial (80 Tracks)")
+        
+        df_grafico = df.copy()
+        df_grafico['Tipo'] = 'Otras Canciones'
+        
+        usuario_df = pd.DataFrame({
+            'cancion': ['Tú'], 'artista': [nombre], 'genero': ['Usuario'],
+            'valence': [mood], 'energy': [actividad], 'Tipo': ['Tu Posición']
+        })
+        
+        df_final = pd.concat([df_grafico, usuario_df], ignore_index=True)
+        
+        st.scatter_chart(df_final, x="valence", y="energy", color="Tipo")
+        st.caption(f"Ubicación actual en espacio cartesiano -> X: {mood} (Valence) | Y: {actividad} (Energy)")
+        st.caption("🔒 Tu interacción ha sido guardada en el historial de forma segura.")
+    else:
+        st.write("### 👈 Ajusta tus coordenadas emocionales a la izquierda y presiona el botón.")
