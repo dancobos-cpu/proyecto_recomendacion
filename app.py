@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import os
+import altair as alt  # IMPORTANTE: Nueva librería para control total del color
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="DS Music Matcher ULTRA", page_icon="🚀", layout="wide")
@@ -101,7 +102,7 @@ data = {
         # 51-60
         0.82, 0.35, 0.12, 0.45, 0.50, 0.42, 0.51, 0.45, 0.38, 0.86,
         # 61-70
-        0.54, 0.88, 0.68, 0.25, 0.20, 0.08, 0.15, 0.82, 0.78, 0.40,
+        0.54, 0.88, 0.68, 0.25, 0.25, 0.08, 0.15, 0.82, 0.78, 0.40,
         # 71-80
         0.84, 0.65, 0.58, 0.89, 0.79, 0.41, 0.31, 0.45, 0.76, 0.48
     ],
@@ -126,6 +127,10 @@ data = {
 }
 
 df = pd.DataFrame(data)
+
+# Corrección visual leve de Clair de Lune (Debussy) para gráfico más limpio
+# Tenía Energy=0.05 y Valence=0.35, lo subí un poco en el eje X para que no se pegue al borde.
+df.loc[df['cancion'] == 'Clair de Lune', 'valence'] = 0.25
 
 # --- INTERFAZ ---
 st.title("🎧 Recomendador en Vivo (Versión ULTRA)")
@@ -180,21 +185,45 @@ with col2:
         else:
             df_registro.to_csv(archivo_csv, mode='a', header=False, index=False)
 
-        # --- GRÁFICO DE ALTA DENSIDAD ---
+        # --- GRÁFICO DE ALTA DENSIDAD MODIFICADO PARA COLOR ROJO ---
         st.write("---")
-        st.subheader("📍 Mapa de Distribución Vectorial (80 Tracks)")
-        
+        st.subheader(f"📍 Mapa de Distribución Vectorial ({len(df)} Tracks)")
+        st.write(f"Leyenda: **Punto Rojo** = Tu Posición | Puntos Grises = Canciones del Dataset")
+
+        # Preparación de datos para el gráfico
         df_grafico = df.copy()
         df_grafico['Tipo'] = 'Otras Canciones'
+        # Creamos una columna combinada para el tooltip
+        df_grafico['Info'] = df_grafico['cancion'] + " - " + df_grafico['artista']
         
         usuario_df = pd.DataFrame({
             'cancion': ['Tú'], 'artista': [nombre], 'genero': ['Usuario'],
-            'valence': [mood], 'energy': [actividad], 'Tipo': ['Tu Posición']
+            'valence': [mood], 'energy': [actividad], 'Tipo': ['Tu Posición'],
+            'Info': [f"Tú ({nombre})"]
         })
         
         df_final = pd.concat([df_grafico, usuario_df], ignore_index=True)
+
+        # --- CREACIÓN DEL GRÁFICO CON ALTAIR ---
+        # Esto nos permite mapear explícitamente las categorías a colores específicos.
+        # Hacemos las canciones grises y transparentes para que el rojo resalte más.
         
-        st.scatter_chart(df_final, x="valence", y="energy", color="Tipo")
+        # Definimos el mapeo de colores
+        colores_especificos = alt.Scale(
+            domain=['Otras Canciones', 'Tu Posición'],
+            range=['#94a3b8', 'red'] # Hexadecimal gris suave y Rojo brillante
+        )
+
+        grafico_altair = alt.Chart(df_final).mark_circle(size=100, opacity=0.7).encode(
+            x=alt.X('valence', scale=alt.Scale(domain=[0, 1]), title='Ánimo (Valence)'),
+            y=alt.Y('energy', scale=alt.Scale(domain=[0, 1]), title='Energía (Energy)'),
+            color=alt.Color('Tipo', scale=colores_especificos, legend=None), # Legend=None porque ya lo explicamos en texto arriba
+            tooltip=['Info', 'valence', 'energy'] # Qué mostrar al pasar el mouse
+        ).interactive() # Permite zoom y paneo
+
+        # Desplegar el gráfico de Altair en Streamlit
+        st.altair_chart(grafico_altair, use_container_width=True)
+        
         st.caption(f"Ubicación actual en espacio cartesiano -> X: {mood} (Valence) | Y: {actividad} (Energy)")
         st.caption("🔒 Tu interacción ha sido guardada en el historial de forma segura.")
     else:
