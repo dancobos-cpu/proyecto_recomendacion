@@ -172,18 +172,6 @@ with col2:
         with metric_col2:
             st.markdown(f"🎵 **Canción:** {recomendacion['cancion']} \n\n👤 **Artista:** {recomendacion['artista']} \n\n🏷️ **Género:** {recomendacion['genero']}")
         
-        # --- HISTORIAL LOCAL EN CSV ---
-        nueva_interaccion = {
-            "Nombre": nombre, "Mood_Usuario": mood, "Energia_Usuario": actividad,
-            "Cancion_Recomendada": recomendacion['cancion'], "Artista_Recomendado": recomendacion['artista'],
-            "Genero": recomendacion['genero'], "Match_Porcentaje": score
-        }
-        df_registro = pd.DataFrame([nueva_interaccion])
-        archivo_csv = 'historial_usuarios.csv'
-        if not os.path.isfile(archivo_csv):
-            df_registro.to_csv(archivo_csv, index=False)
-        else:
-            df_registro.to_csv(archivo_csv, mode='a', header=False, index=False)
 
         # --- GRÁFICO DE ALTA DENSIDAD MODIFICADO PARA COLOR ROJO ---
         st.write("---")
