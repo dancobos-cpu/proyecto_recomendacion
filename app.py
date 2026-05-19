@@ -133,7 +133,7 @@ df = pd.DataFrame(data)
 df.loc[df['cancion'] == 'Clair de Lune', 'valence'] = 0.25
 
 # --- INTERFAZ ---
-st.title("🎧 Recomendador en Vivo (Versión ULTRA)")
+st.title("🎧 Recomendador en Vivo")
 st.info(f"Modelo Espacial de Datos cargado exitosamente con **{len(df)} canciones** distribuidas vectorialmente.")
 
 # Diseño de columnas amplias
